@@ -132,7 +132,7 @@ def AlgoritmoGreedy():
     for i in range(vertices):
         vecinos.append((i+1, 0))
 
-    for (a, b) in enlaces:
+    for (a, b) in listaEnlaces:
         vecinos[a-1] = (a, vecinos[a-1][1]+1)
         vecinos[b-1] = (b, vecinos[b-1][1]+1)
 
@@ -146,7 +146,7 @@ def AlgoritmoGreedy():
 
     # Cuenta el número de aristas entre los vértices seleccionados
     nAristasSubconjunto = 0
-    for (a, b) in enlaces:
+    for (a, b) in listaEnlaces:
         if a in subconjunto and b in subconjunto:
             nAristasSubconjunto += 1
 

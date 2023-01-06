@@ -8,17 +8,8 @@ import random
 import networkx as nx
 import matplotlib.pyplot as plt
 import math
-#--------------------------------------------PARAMETROS DE LOS ALGORITMOS#--------------------------------------------#
 
-vertices = 6
-nAristas = 7
-kValue = 4
-listaEnlaces = [(1, 2), (1, 3), (1, 4), (2, 4), (2, 5), (3, 4), (4, 6)]
-poblacion_inicial = 10
-max_generaciones = 100
-tasa_mutacion = 0.1
-
-#--------------------------------------------FUNCIONES ADICIONALES#--------------------------------------------#
+#--------------------------------------------LeerTxt#----------------------------------------------#
 def load(dir):
     
     with open(dir, 'r') as f:
@@ -36,7 +27,12 @@ def load(dir):
             if(words[0]=='e'):
                 listaEnlaces.append((int(words[1]),int(words[2])))
             
-    return kValue,vertices,nAristas,listaEnlaces            
+    return kValue,vertices,nAristas,listaEnlaces 
+#--------------------------------------------PARAMETROS DE LOS ALGORITMOS#--------------------------------------------#
+
+
+#--------------------------------------------FUNCIONES ADICIONALES#--------------------------------------------#
+           
 
 def showGraph(listaEnlaces):
         # Crea un grafo vacío
@@ -107,18 +103,20 @@ def seleccion_ruleta(poblacion):
     for (ind, acumulada) in zip(poblacion, acumuladas):
         if r < acumulada:
             return ind
+def reproduccion(padres):
+    # Aplicamos el cruce en el punto medio para crear dos descendientes
+    descendiente1 = padres[0][:len(padres[0]) // 2] + padres[1][len(padres[1]) // 2:]
+    descendiente2 = padres[1][:len(padres[1]) // 2] + padres[0][len(padres[0]) // 2:]
+    return [descendiente1, descendiente2]
+
+def mutacion(individuo):
+    # Cambiamos el valor de un gen al azar
+    gen = random.randint(0, len(individuo) - 1)
+    individuo[gen] = random.randint(1, vertices)
+    return individuo
 #--------------------------------------------FUNCIONES ADICIONALES#--------------------------------------------#
 
-#--------------------------------------------Main#--------------------------------------------#
-def main():
-    dir = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\datos.txt'
-    #kValue,vertices,nAristas,listaEnlaces = load(dir)
-    #showGraph()
-    AlgoritmoGreedy()
-    evolutiveAlgorithm()
-    #algoritmoHibrido()
-    
-#--------------------------------------------ALGORITMOS#--------------------------------------------#
+
 #Algoritmo Busqueda Local
 def AlgoritmoGreedy():
 
@@ -151,9 +149,10 @@ def AlgoritmoGreedy():
             nAristasSubconjunto += 1
 
     print(sorted(subconjunto, reverse=True),"-> Number of Edges: ",nAristasSubconjunto)
-    
+
 #Algoritmo Evolutivo  
 def evolutiveAlgorithm():
+    
     # Crea la población inicial
     poblacion = [[random.randint(1, vertices) for _ in range(kValue)] for _ in range(poblacion_inicial)]
     # Crea la población inicial
@@ -179,46 +178,247 @@ def evolutiveAlgorithm():
         poblacion = hijos_torneo[:int(poblacion_inicial/2)] + hijos_ruleta[:int(poblacion_inicial/2)] + seleccionados_torneo[:int(poblacion_inicial/2)] + seleccionados_ruleta[:int(poblacion_inicial/2)]
         # Obtiene el mejor individuo
     mejor = max(poblacion, key=aptitud)
-    print(sorted(mejor,reverse=True),"Number of Edges = ",aptitud(mejor))
+    print(sorted(mejor,reverse=True),"-> Number of Edges = ",aptitud(mejor))
     
-#Algoritmo Hibrido          
-def algoritmoHibrido():
-    MAX_GENERACIONES_EVOLUTIVO=10
-            # Inicializa el mejor individuo con una solución aleatoria
-    mejor = [random.randint(1, vertices) for _ in range(kValue)]
-    mejor_aptitud = aptitud(mejor)
+def hill_climbingEstocastico(max_iterations=1000):
+    iterations=0
+# Crea una solución inicial al elegir al azar k vértices del grafo
+    current_solution = random.sample(range(vertices), kValue)
+  
+    # Bucle hasta que no se pueda mejorar la solución actual
+    while True:
+    # Crea una lista de posibles cambios a la solución actual
+        iterations+=1
+        possible_changes = []
+        if(iterations>= max_iterations):
+            break
+    
+        # Recorre cada vértice en la solución actual
+        for vertex in current_solution:
+            # Crea una lista de vértices vecinos del vértice actual
+            neighbors = [v for (u, v) in listaEnlaces if u == vertex or v == vertex]
+        
+        # Recorre cada vecino
+            for neighbor in neighbors:
+                # Si el vecino no está en la solución actual y al menos dos vecinos diferentes han sido explorados,
+                # agrega el vecino como un posible cambio a la solución actual
+                if neighbor not in current_solution and len(set(current_solution).intersection(set(neighbors))) > 1:
+                    possible_changes.append(neighbor)
+        
+        # Si no hay posibles cambios, termina el bucle
+        if not possible_changes:
+            break
+        
+        # Elige al azar un posible cambio
+        change = random.choice(possible_changes)
+        
+        # Crea una nueva solución reemplazando un vértice al azar en la solución actual con el cambio elegido
+        new_solution = current_solution[:]
+        new_solution.remove(random.choice(current_solution))
+        new_solution.append(change)
+        
+        # Calcula el número de aristas en la nueva solución
+        new_edges = sum([1 for (u, v) in listaEnlaces if u in new_solution and v in new_solution])
+        
+        # Si la nueva solución tiene más aristas que la solución actual, la solución actual se convierte en la nueva solución
+        if new_edges > sum([1 for (u, v) in listaEnlaces if u in current_solution and v in current_solution]):
+            current_solution = new_solution
+
+    # Devuelve la solución final  
+    return current_solution  
+    #print(sorted(current_solution, reverse=True),"-> Number of Edges: ",aptitud(current_solution))
+#Algoritmo Hibrido: EVOLUTIVO + GREEDY        
+
+def algoritmo_Hibrido_Greedy_Evolutivo():
+    mejorFinal=[]
+    # Crea la población inicial
+    poblacion = [[random.randint(1, vertices) for _ in range(kValue)] for _ in range(poblacion_inicial)]
 
     # Itera hasta el criterio de parada
     for _ in range(max_generaciones):
-        # Crea la población inicial
-        poblacion = [[random.randint(1, vertices) for _ in range(kValue)] for _ in range(poblacion_inicial)]
-        # Aplica el algoritmo evolutivo
-        for _ in range(MAX_GENERACIONES_EVOLUTIVO):
-            # Selecciona a los individuos para reproducirse
-            seleccionados_torneo = [seleccion_torneo(poblacion) for _ in range(poblacion_inicial)]
-            seleccionados_ruleta = [seleccion_ruleta(poblacion) for _ in range(poblacion_inicial)]
-            # Aplica los operadores de recombinación
-            hijos_torneo = [recombinacion_punto(seleccionados_torneo[i], seleccionados_torneo[i+1]) for i in range(0, poblacion_inicial, 2)]
-            hijos_ruleta = [recombinacion_uniforme(seleccionados_ruleta[i], seleccionados_ruleta[i+1]) for i in range(0, poblacion_inicial, 2)]
-            # Aplica los operadores de mutación
-            for ind in hijos_torneo:
-                if random.random() < tasa_mutacion:
-                    mutacion_intercambio(ind)
-            for ind in hijos_ruleta:
-                if random.random() < tasa_mutacion:
-                    mutacion_insercion(ind)
-            # Reemplaza a algunos individuos de la población
-            poblacion = hijos_torneo[:int(poblacion_inicial/2)] + hijos_ruleta[:int(poblacion_inicial/2)] + seleccionados_torneo[:int(poblacion_inicial/2)] + seleccionados_ruleta[:int(poblacion_inicial/2)]
-        # Aplica la búsqueda local sobre el mejor individuo del algoritmo evolutivo
-        mejor_evolutivo = max(poblacion, key=aptitud)
-        print(mejor_evolutivo)
-        mejor_local = AlgoritmoGreedy(mejor_evolutivo)
-        mejor_aptitud_local = aptitud(mejor_local)
-        # Actualiza el mejor individuo
-        if mejor_aptitud_local > mejor_aptitud:
-            mejor = mejor_local
-            mejor_aptitud = mejor_aptitud_local
+        # Selecciona a los individuos para reproducirse
+        seleccionados_torneo = [seleccion_torneo(poblacion) for _ in range(poblacion_inicial)]
+        seleccionados_ruleta = [seleccion_ruleta(poblacion) for _ in range(poblacion_inicial)]
+        # Aplica los operadores de recombinación
+        hijos_torneo = [recombinacion_punto(seleccionados_torneo[i], seleccionados_torneo[i+1]) for i in range(0, poblacion_inicial, 2)]
+        hijos_ruleta = [recombinacion_uniforme(seleccionados_ruleta[i], seleccionados_ruleta[i+1]) for i in range(0, poblacion_inicial, 2)]
+        # Aplica los operadores de mutación
+        for ind in hijos_torneo:
+            if random.random() < tasa_mutacion:
+                mutacion_intercambio(ind)
+        for ind in hijos_ruleta:
+            if random.random() < tasa_mutacion:
+                mutacion_insercion(ind)
 
-    print(mejor, mejor_aptitud)
-if __name__ == "__main__":
-    main()  
+        # Reemplaza a algunos individuos de la población
+        poblacion = hijos_torneo[:int(poblacion_inicial/2)] + hijos_ruleta[:int(poblacion_inicial/2)] + seleccionados_torneo[:int(poblacion_inicial/2)] + seleccionados_ruleta[:int(poblacion_inicial/2)]
+
+        # Aplica el algoritmo de búsqueda local greedy a cada individuo en la población
+        for i, individuo in enumerate(poblacion):
+            vecinos = []
+            for i in range(vertices):
+                vecinos.append((i+1, 0))
+
+            for (a, b) in listaEnlaces:
+                vecinos[a-1] = (a, vecinos[a-1][1]+1)
+                vecinos[b-1] = (b, vecinos[b-1][1]+1)
+
+            # Ordena la lista de tuplas en orden descendente por el número de vecinos
+            vecinos.sort(key=lambda x: x[1], reverse=True)
+
+            # Selecciona los k vértices con más vecinos
+            subconjunto = []
+            for i in range(kValue):
+                subconjunto.append(vecinos[i][0])
+            # Reemplaza al individuo en la población con la solución mejorada obtenida del algoritmo de búsqueda local greedy
+            poblacion[i] = subconjunto
+        # Obtiene el mejor individuo
+        mejor = max(poblacion, key=aptitud)
+        #print(aptitud(mejor))
+    #Comprobamos las aptitudes para ver cual es la mejor solucion
+    if(aptitud(mejor) > aptitud(mejorFinal) ):
+        mejorFinal=mejor
+    print(sorted(mejorFinal,reverse=True),"-> Number of Edges = ",aptitud(mejorFinal))
+    
+    
+def algoritmo_Hibrido_Estocastico_Evolutivo(): 
+    solucionColinas = hill_climbingEstocastico()
+    
+    # Iteramos hasta el criterio de parada
+    for _ in range(max_generaciones):
+        # Seleccionamos a los individuos para reproducirse
+        seleccionados_torneo = [seleccion_torneo([solucionColinas]) for _ in range(poblacion_inicial)]
+        seleccionados_ruleta = [seleccion_ruleta([solucionColinas]) for _ in range(poblacion_inicial)]
+        # Aplicamos los operadores de reproducción y mutación
+        offspring = reproduccion(seleccionados_torneo) + reproduccion(seleccionados_ruleta)
+        offspring = [mutacion(individuo) for individuo in offspring]
+        # Evaluamos la aptitud de los individuos
+        poblacion = [individuo for individuo in offspring if aptitud(individuo) > aptitud(solucionColinas)] + [solucionColinas]
+        # Actualizamos la solución actual con el individuo más apto
+        solucionColinas = seleccion_torneo(poblacion)
+        
+    # Devolvemos la solución final
+    print(sorted(solucionColinas,reverse=True),"-> Number of Edges = ",aptitud(solucionColinas))
+    
+def algoritmo_Hibrido_Estocastico_Evolutivo2():
+    # Generamos una solución inicial utilizando el algoritmo de trepa colinas estocástico
+    solucionColinas = hill_climbingEstocastico()
+    
+    # Iteramos hasta el criterio de parada
+    for _ in range(max_generaciones):
+        # Generamos una población de soluciones vecinas a la solución actual
+        poblacion = []
+        for _ in range(poblacion_inicial):
+            # Creamos una solución vecina intercambiando dos genes al azar
+            vecina = solucionColinas[:]
+            gen1 = random.randint(0, len(vecina) - 1)
+            gen2 = random.randint(0, len(vecina) - 1)
+            vecina[gen1], vecina[gen2] = vecina[gen2], vecina[gen1]
+            poblacion.append(vecina)
+        # Añadimos la solución actual a la población
+        poblacion.append(solucionColinas)
+        # Seleccionamos al individuo más apto de la población
+        solucionColinas = seleccion_torneo(poblacion)
+        
+    # Devolvemos la solución final
+    print(sorted(solucionColinas,reverse=True),"-> Number of Edges = ",aptitud(solucionColinas))   
+#--------------------------------------------Main#--------------------------------------------#
+dirTest = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\teste.txt'
+dirFile1 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file1.txt'
+dirFile2 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file2.txt'
+dirFile3 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file3.txt'
+dirFile4 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file4.txt'
+dirFile5 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file5.txt'
+poblacion_inicial = 10
+max_generaciones = 100
+tasa_mutacion = 0.1
+kValue,vertices,nAristas,listaEnlaces = load(dirTest)
+print("------------------------------------TESTE.txt------------------------------------------------")
+print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
+AlgoritmoGreedy()
+print("*******************         ALGORITMO LOCAL ESTOCASTICO                   *******************")
+print(sorted(hill_climbingEstocastico(),reverse=True),"-> Number of Edges = ",aptitud(hill_climbingEstocastico()))
+print("*******************         ALGORITMO Evolutivo                           *******************")
+evolutiveAlgorithm()
+print("*******************         ALGORITMO Hibrido GREEDY - EVOLUTIVO          *******************")
+algoritmo_Hibrido_Greedy_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO     *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo2()
+print("")
+kValue,vertices,nAristas,listaEnlaces = load(dirFile1)
+print("------------------------------------File1.txt------------------------------------------------")
+print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
+AlgoritmoGreedy()
+print("*******************         ALGORITMO LOCAL ESTOCASTICO                   *******************")
+print(sorted(hill_climbingEstocastico(),reverse=True),"-> Number of Edges = ",aptitud(hill_climbingEstocastico()))
+print("*******************         ALGORITMO Evolutivo                           *******************")
+evolutiveAlgorithm()
+print("*******************         ALGORITMO Hibrido GREEDY - EVOLUTIVO          *******************")
+algoritmo_Hibrido_Greedy_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO     *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo2()
+print("")
+kValue,vertices,nAristas,listaEnlaces = load(dirFile2)
+print("------------------------------------File2.txt------------------------------------------------")
+print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
+AlgoritmoGreedy()
+print("*******************         ALGORITMO LOCAL ESTOCASTICO                   *******************")
+print(sorted(hill_climbingEstocastico(),reverse=True),"-> Number of Edges = ",aptitud(hill_climbingEstocastico()))
+print("*******************         ALGORITMO Evolutivo                           *******************")
+evolutiveAlgorithm()
+print("*******************         ALGORITMO Hibrido GREEDY - EVOLUTIVO          *******************")
+algoritmo_Hibrido_Greedy_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO     *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo2()
+print("")
+kValue,vertices,nAristas,listaEnlaces = load(dirFile3)
+print("------------------------------------File3.txt------------------------------------------------")
+print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
+AlgoritmoGreedy()
+print("*******************         ALGORITMO LOCAL ESTOCASTICO                   *******************")
+print(sorted(hill_climbingEstocastico(),reverse=True),"-> Number of Edges = ",aptitud(hill_climbingEstocastico()))
+print("*******************         ALGORITMO Evolutivo                           *******************")
+evolutiveAlgorithm()
+print("*******************         ALGORITMO Hibrido GREEDY - EVOLUTIVO          *******************")
+algoritmo_Hibrido_Greedy_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO     *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo2()
+print("")
+kValue,vertices,nAristas,listaEnlaces = load(dirFile4)
+print("------------------------------------File4.txt------------------------------------------------")
+print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
+AlgoritmoGreedy()
+print("*******************         ALGORITMO LOCAL ESTOCASTICO                   *******************")
+print(sorted(hill_climbingEstocastico(),reverse=True),"-> Number of Edges = ",aptitud(hill_climbingEstocastico()))
+print("*******************         ALGORITMO Evolutivo                           *******************")
+evolutiveAlgorithm()
+print("*******************         ALGORITMO Hibrido GREEDY - EVOLUTIVO          *******************")
+algoritmo_Hibrido_Greedy_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO     *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo2()
+print("")
+kValue,vertices,nAristas,listaEnlaces = load(dirFile5)
+print("------------------------------------File5.txt------------------------------------------------")
+print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
+AlgoritmoGreedy()
+print("*******************         ALGORITMO LOCAL ESTOCASTICO                   *******************")
+print(sorted(hill_climbingEstocastico(),reverse=True),"-> Number of Edges = ",aptitud(hill_climbingEstocastico()))
+print("*******************         ALGORITMO Evolutivo                           *******************")
+evolutiveAlgorithm()
+print("*******************         ALGORITMO Hibrido GREEDY - EVOLUTIVO          *******************")
+algoritmo_Hibrido_Greedy_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO     *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo()
+print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
+algoritmo_Hibrido_Estocastico_Evolutivo2()
+print("")

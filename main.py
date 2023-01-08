@@ -118,13 +118,8 @@ def mutacion(individuo):
 
 
 #Algoritmo Busqueda Local
-def AlgoritmoGreedy():
-
-    #vertices = 6
-    #nAristas = 7
-    #kValue = 4
-    #listaEnlaces = [(1, 2), (1, 3), (1, 4), (2, 4), (2, 5), (3, 4), (4, 6)]
-
+def AlgoritmoGreedy(maxIterations=1500,max_iteraciones_SinMejora=1000):
+    iterations = 0 
     # Crea una lista de tuplas con los vértices y el número de vecinos
     vecinos = []
     for i in range(vertices):
@@ -137,24 +132,41 @@ def AlgoritmoGreedy():
     # Ordena la lista de tuplas en orden descendente por el número de vecinos
     vecinos.sort(key=lambda x: x[1], reverse=True)
 
-    # Selecciona los k vértices con más vecinos
-    subconjunto = []
-    for i in range(kValue):
-        subconjunto.append(vecinos[i][0])
+    # Inicializa la mejor solución encontrada hasta ahora
+    mejor_subconjunto = []
+    mejor_nAristasSubconjunto = 0
+    
+    # Repite el algoritmo varias veces hasta que no se encuentre una solución mejor durante un cierto número de iteraciones
+    n_iteraciones_sin_mejora = 0
+    while n_iteraciones_sin_mejora < max_iteraciones_SinMejora:
+        iterations +=1
+        #Condicion de salida:
+        if maxIterations < iterations:
+            break
+        # Selecciona los k vértices con más vecinos
+        subconjunto = []
+        for i in range(kValue):
+            subconjunto.append(vecinos[i][0])
 
-    # Cuenta el número de aristas entre los vértices seleccionados
-    nAristasSubconjunto = 0
-    for (a, b) in listaEnlaces:
-        if a in subconjunto and b in subconjunto:
-            nAristasSubconjunto += 1
+        # Cuenta el número de aristas entre los vértices seleccionados
+        nAristasSubconjunto = 0
+        for (a, b) in listaEnlaces:
+            if a in subconjunto and b in subconjunto:
+                nAristasSubconjunto += 1
 
-    print(sorted(subconjunto, reverse=True),"-> Number of Edges: ",nAristasSubconjunto)
+        # Si se ha encontrado una solución mejor, actualiza la mejor solución encontrada hasta ahora
+        if nAristasSubconjunto > mejor_nAristasSubconjunto:
+            mejor_subconjunto = subconjunto
+            mejor_nAristasSubconjunto = nAristasSubconjunto
+            n_iteraciones_sin_mejora = 0
+        else:
+            n_iteraciones_sin_mejora += 1
+
+    print(sorted(mejor_subconjunto, reverse=True),"-> n: ",mejor_nAristasSubconjunto)
 
 #Algoritmo Evolutivo  
-def evolutiveAlgorithm():
+def evolutiveAlgorithm(poblacion_inicial=10,max_generaciones=100,tasa_mutacion=0.1 ):
     
-    # Crea la población inicial
-    poblacion = [[random.randint(1, vertices) for _ in range(kValue)] for _ in range(poblacion_inicial)]
     # Crea la población inicial
     poblacion = [[random.randint(1, vertices) for _ in range(kValue)] for _ in range(poblacion_inicial)]
 
@@ -183,9 +195,9 @@ def evolutiveAlgorithm():
 def hill_climbingEstocastico(max_iterations=1000):
     iterations=0
 # Crea una solución inicial al elegir al azar k vértices del grafo
-    current_solution = random.sample(range(vertices), kValue)
+    solucion_incial = random.sample(range(vertices), kValue)
   
-    # Bucle hasta que no se pueda mejorar la solución actual
+    # Bucle hasta que no se pueda mejorar la solución actual, cada vez que se ejecuta este bucle, busca en un vecindario distinto.
     while True:
     # Crea una lista de posibles cambios a la solución actual
         iterations+=1
@@ -194,7 +206,7 @@ def hill_climbingEstocastico(max_iterations=1000):
             break
     
         # Recorre cada vértice en la solución actual
-        for vertex in current_solution:
+        for vertex in solucion_incial:
             # Crea una lista de vértices vecinos del vértice actual
             neighbors = [v for (u, v) in listaEnlaces if u == vertex or v == vertex]
         
@@ -202,7 +214,7 @@ def hill_climbingEstocastico(max_iterations=1000):
             for neighbor in neighbors:
                 # Si el vecino no está en la solución actual y al menos dos vecinos diferentes han sido explorados,
                 # agrega el vecino como un posible cambio a la solución actual
-                if neighbor not in current_solution and len(set(current_solution).intersection(set(neighbors))) > 1:
+                if neighbor not in solucion_incial and len(set(solucion_incial).intersection(set(neighbors))) > 1:
                     possible_changes.append(neighbor)
         
         # Si no hay posibles cambios, termina el bucle
@@ -213,23 +225,23 @@ def hill_climbingEstocastico(max_iterations=1000):
         change = random.choice(possible_changes)
         
         # Crea una nueva solución reemplazando un vértice al azar en la solución actual con el cambio elegido
-        new_solution = current_solution[:]
-        new_solution.remove(random.choice(current_solution))
+        new_solution = solucion_incial[:]
+        new_solution.remove(random.choice(solucion_incial))
         new_solution.append(change)
         
         # Calcula el número de aristas en la nueva solución
         new_edges = sum([1 for (u, v) in listaEnlaces if u in new_solution and v in new_solution])
         
         # Si la nueva solución tiene más aristas que la solución actual, la solución actual se convierte en la nueva solución
-        if new_edges > sum([1 for (u, v) in listaEnlaces if u in current_solution and v in current_solution]):
-            current_solution = new_solution
+        if new_edges > sum([1 for (u, v) in listaEnlaces if u in solucion_incial and v in solucion_incial]):
+            solucion_incial = new_solution
 
     # Devuelve la solución final  
-    return current_solution  
+    return solucion_incial  
     #print(sorted(current_solution, reverse=True),"-> Number of Edges: ",aptitud(current_solution))
 #Algoritmo Hibrido: EVOLUTIVO + GREEDY        
 
-def algoritmo_Hibrido_Greedy_Evolutivo():
+def algoritmo_Hibrido_Greedy_Evolutivo(poblacion_inicial = 10 ,max_generaciones = 100, tasa_mutacion = 0.1 ):
     mejorFinal=[]
     # Crea la población inicial
     poblacion = [[random.randint(1, vertices) for _ in range(kValue)] for _ in range(poblacion_inicial)]
@@ -281,8 +293,8 @@ def algoritmo_Hibrido_Greedy_Evolutivo():
     print(sorted(mejorFinal,reverse=True),"-> Number of Edges = ",aptitud(mejorFinal))
     
     
-def algoritmo_Hibrido_Estocastico_Evolutivo(): 
-    solucionColinas = hill_climbingEstocastico()
+def algoritmo_Hibrido_Estocastico_Evolutivo(poblacion_inicial = 10 ,max_generaciones = 100, max_iterations = 1000): 
+    solucionColinas = hill_climbingEstocastico(max_iterations)
     
     # Iteramos hasta el criterio de parada
     for _ in range(max_generaciones):
@@ -300,9 +312,9 @@ def algoritmo_Hibrido_Estocastico_Evolutivo():
     # Devolvemos la solución final
     print(sorted(solucionColinas,reverse=True),"-> Number of Edges = ",aptitud(solucionColinas))
     
-def algoritmo_Hibrido_Estocastico_Evolutivo2():
+def algoritmo_Hibrido_Estocastico_Evolutivo2(poblacion_inicial = 10 ,max_generaciones = 100, max_iterations =1000):
     # Generamos una solución inicial utilizando el algoritmo de trepa colinas estocástico
-    solucionColinas = hill_climbingEstocastico()
+    solucionColinas = hill_climbingEstocastico(max_iterations)
     
     # Iteramos hasta el criterio de parada
     for _ in range(max_generaciones):
@@ -329,9 +341,7 @@ dirFile2 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\fi
 dirFile3 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file3.txt'
 dirFile4 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file4.txt'
 dirFile5 = r'C:\Users\Sergi\Desktop\code\Universidad\Erasmus\IA\p2\Entregable\file5.txt'
-poblacion_inicial = 10
-max_generaciones = 100
-tasa_mutacion = 0.1
+
 kValue,vertices,nAristas,listaEnlaces = load(dirTest)
 print("------------------------------------TESTE.txt------------------------------------------------")
 print("*******************         ALGORITMO LOCAL GREEDY                        *******************")
@@ -421,4 +431,4 @@ print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO    
 algoritmo_Hibrido_Estocastico_Evolutivo()
 print("*******************         ALGORITMO Hibrido ESTOCASTICO - EVOLUTIVO 2   *******************")
 algoritmo_Hibrido_Estocastico_Evolutivo2()
-print("")
+print("") 

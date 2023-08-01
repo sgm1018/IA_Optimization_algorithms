@@ -14,7 +14,6 @@ This README provides an overview of the optimization algorithms implemented for 
     - [Evolutionary Algorithm](#evolutionary-algorithm)
     - [Hybrid Algorithms](#hybrid-algorithms)
 - [Examples](#examples)
-- [License](#license)
 - [Acknowledgments](#acknowledgments)
 
 ## Introduction

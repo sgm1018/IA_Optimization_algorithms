@@ -90,7 +90,7 @@ algoritmo_Hibrido_Estocastico_Evolutivo2()
 ```
 
 ## Author
-Thease algorithms have been made by **sgm1018**
+These algorithms have been made by **sgm1018**
 
 
 
